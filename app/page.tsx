@@ -83,7 +83,7 @@ export default function Home() {
             </div>
           )}
 
-          <div className="min-h-0 flex-1 space-y-4 pb-28">
+          <div className="space-y-4 pb-28">
             {messages.map((msg, index) => (
               <div
                 key={index}
