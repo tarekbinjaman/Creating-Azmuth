@@ -5,15 +5,10 @@ const groq = new Groq({
 });
 
 export async function POST(request: Request) {
-  const { message } = await request.json();
+  const { messages } = await request.json();
 
   const completion = await groq.chat.completions.create({
-    messages: [
-      {
-        role: "user",
-        content: message,
-      },
-    ],
+    messages,
     model: "openai/gpt-oss-20b",
   });
 
