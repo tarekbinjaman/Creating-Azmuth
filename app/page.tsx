@@ -10,13 +10,17 @@ type Message = {
 export default function Home() {
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
+  const [chatId, setChatId] = useState(() => crypto.randomUUID());
   const [loading, setLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+
+
 
     if (!message.trim() || loading) return;
 
@@ -39,6 +43,7 @@ export default function Home() {
         },
         body: JSON.stringify({
           messages: updatedMessages,
+          chatId,
         }),
       });
 
@@ -76,7 +81,10 @@ export default function Home() {
   <h1 className="text-xl font-semibold">Astra</h1>
 
   <button
-    onClick={() => setMessages([])}
+    onClick={() => {
+  setMessages([]);
+  setChatId(crypto.randomUUID());
+}}
     className="rounded-xl border px-4 py-2 text-sm font-medium hover:bg-gray-100"
   >
     New Chat

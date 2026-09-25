@@ -6,8 +6,8 @@ const groq = new Groq({
 
 export async function POST(request: Request) {
   try {
-    const { messages } = await request.json();
-
+    const { chatId, messages } = await request.json();
+    console.log("Chat ID:", chatId);
     if (!messages || !Array.isArray(messages)) {
       return Response.json(
         { error: "Messages are required" },
