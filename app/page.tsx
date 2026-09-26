@@ -10,17 +10,76 @@ type Message = {
 export default function Home() {
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
-  const [chatId, setChatId] = useState(() => crypto.randomUUID());
   const [loading, setLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [chatId, setChatId] = useState(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("astra-chat-id") || crypto.randomUUID();
+    }
+
+    return "";
+  });
+  const [chats, setChats] = useState<
+    {
+      id: string;
+      title: string | null;
+      createdAt: string;
+      updatedAt: string;
+    }[]
+  >([]);
+
+  useEffect(() => {
+    async function loadChats() {
+      try {
+        const response = await fetch("/api/chat");
+
+        if (!response.ok) {
+          throw new Error("Failed to load chats");
+        }
+
+        const data = await response.json();
+
+        setChats(data.chats);
+      } catch (error) {
+        console.error("Failed to load chats:", error);
+      }
+    }
+
+    loadChats();
+  }, []);
+
+  useEffect(() => {
+    if (chatId) {
+      localStorage.setItem("astra-chat-id", chatId);
+    }
+  }, [chatId]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  useEffect(() => {
+    async function loadMessages() {
+      try {
+        const response = await fetch(`/api/chat?chatId=${chatId}`);
+
+        if (!response.ok) {
+          throw new Error("Failed to load messages");
+        }
+
+        const data = await response.json();
+
+        setMessages(data.messages);
+      } catch (error) {
+        console.error("Failed to load chat:", error);
+      }
+    }
+
+    loadMessages();
+  }, [chatId]);
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-
-
 
     if (!message.trim() || loading) return;
 
@@ -77,19 +136,38 @@ export default function Home() {
 
   return (
     <main className="flex h-screen flex-col">
-<header className="flex shrink-0 items-center justify-between border-b px-6 py-4">
-  <h1 className="text-xl font-semibold">Astra</h1>
+      <aside className="fixed left-0 top-0 h-screen w-64 border-r bg-gray-600 p-4">
+        <h2 className="mb-4 font-semibold">Chat History</h2>
 
-  <button
-    onClick={() => {
-  setMessages([]);
-  setChatId(crypto.randomUUID());
-}}
-    className="rounded-xl border px-4 py-2 text-sm font-medium hover:bg-gray-100"
-  >
-    New Chat
-  </button>
-</header>
+        <div className="space-y-2">
+          {chats.map((chat) => (
+            <button
+              key={chat.id}
+                onClick={() => setChatId(chat.id)}
+              className="w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-gray-700"
+            >
+              {chat.title || "New Chat"}
+            </button>
+          ))}
+        </div>
+      </aside>
+      <header className="flex shrink-0 items-center justify-between border-b px-6 py-4">
+        <h1 className="text-xl font-semibold">Astra</h1>
+
+        <button
+          onClick={() => {
+            const newChatId = crypto.randomUUID();
+
+            localStorage.setItem("astra-chat-id", newChatId);
+
+            setMessages([]);
+            setChatId(newChatId);
+          }}
+          className="rounded-xl border px-4 py-2 text-sm font-medium hover:bg-gray-100"
+        >
+          New Chat
+        </button>
+      </header>
 
       <section className="flex min-h-0 flex-1 justify-center px-6 py-8">
         <div className="flex min-h-0 w-full max-w-3xl flex-col">
