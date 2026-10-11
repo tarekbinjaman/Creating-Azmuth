@@ -9,6 +9,11 @@ type Message = {
   content: string;
 };
 
+type MemorySuggestion = {
+  content: string;
+  category: "personal_fact" | "preference" | "goal" | "instruction";
+};
+
 export default function ChatInterface({
   chatId,
   savedMessages,
@@ -16,6 +21,8 @@ export default function ChatInterface({
   chatId: string;
   savedMessages: Message[];
 }) {
+  const [memorySuggestions, setMemorySuggestions] = useState<MemorySuggestion[]>([]);
+const [savingMemory, setSavingMemory] = useState<string | null>(null);
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState<Message[]>(savedMessages);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -43,10 +50,12 @@ export default function ChatInterface({
         chatId,
         messages: updatedMessages,
       });
-      setMessages((prev) => [
-        ...prev,
-        { role: "assistant", content: data.reply },
-      ]);
+setMessages((prev) => [
+  ...prev,
+  { role: "assistant", content: data.reply },
+]);
+
+setMemorySuggestions(data.memories ?? []);
     } catch (error) {
       console.error(error);
       setMessages((prev) => [
@@ -55,6 +64,39 @@ export default function ChatInterface({
       ]);
     }
   }
+
+  async function saveMemory(suggestion: MemorySuggestion) {
+  const key = `${suggestion.category}:${suggestion.content}`;
+
+  try {
+    setSavingMemory(key);
+
+    const response = await fetch("/api/memories", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(suggestion),
+    });
+
+    if (!response.ok) {
+      throw new Error("Failed to save memory.");
+    }
+
+    setMemorySuggestions((current) =>
+      current.filter((item) => item !== suggestion),
+    );
+  } catch (error) {
+    console.error("Failed to save suggested memory:", error);
+    alert("Could not save this memory. Please try again.");
+  } finally {
+    setSavingMemory(null);
+  }
+}
+
+function dismissMemory(suggestion: MemorySuggestion) {
+  setMemorySuggestions((current) =>
+    current.filter((item) => item !== suggestion),
+  );
+}
 
   return (
     <>
@@ -85,6 +127,52 @@ export default function ChatInterface({
           </div>
         )}
         <div ref={messagesEndRef} />
+        {memorySuggestions.length > 0 && (
+  <div className="space-y-3 rounded-xl border border-blue-200 bg-blue-50 p-4 text-gray-900">
+    <h3 className="font-semibold">Possible memories</h3>
+    <p className="text-sm text-gray-600">
+      Would you like Astra to remember any of these?
+    </p>
+
+    {memorySuggestions.map((suggestion, index) => {
+      const key = `${suggestion.category}:${suggestion.content}`;
+
+      return (
+        <div
+          key={`${key}-${index}`}
+          className="rounded-lg border bg-white p-3"
+        >
+          <span className="text-xs font-medium uppercase text-blue-700">
+            {suggestion.category.replaceAll("_", " ")}
+          </span>
+
+          <p className="my-2 text-sm">{suggestion.content}</p>
+
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => saveMemory(suggestion)}
+              disabled={savingMemory !== null}
+              className="rounded-lg bg-blue-600 px-3 py-1.5 text-sm text-white disabled:opacity-50"
+            >
+              {savingMemory === key ? "Saving..." : "Save"}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => dismissMemory(suggestion)}
+              disabled={savingMemory !== null}
+              className="rounded-lg border px-3 py-1.5 text-sm hover:bg-gray-100"
+            >
+              Dismiss
+            </button>
+          </div>
+        </div>
+      );
+    })}
+  </div>
+)}
+
       </div>
 
       <form

@@ -14,6 +14,16 @@ model Chat {
   messages  Message[]
 }
 
+
+model Memory {
+  id        String   @id @default(cuid())
+  content   String
+  category  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+
 model Message {
   id        String   @id @default(cuid())
   role      String
